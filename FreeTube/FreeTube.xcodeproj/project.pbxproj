@@ -318,8 +318,8 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
-				DEVELOPMENT_TEAM = 2Z797QJNH7;
+				CURRENT_PROJECT_VERSION = 23;
+				DEVELOPMENT_TEAM = 8PKTVAZM9Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FreeTube/Info.plist;
@@ -339,7 +339,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.leshko.freetube;
+				PRODUCT_BUNDLE_IDENTIFIER = one.rivers.untube;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -361,8 +361,8 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
-				DEVELOPMENT_TEAM = 2Z797QJNH7;
+				CURRENT_PROJECT_VERSION = 23;
+				DEVELOPMENT_TEAM = 8PKTVAZM9Q;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_TESTABILITY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -383,7 +383,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.leshko.freetube;
+				PRODUCT_BUNDLE_IDENTIFIER = one.rivers.untube;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -444,7 +444,7 @@
 			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 8.9.0;
+				minimumVersion = 8.11.0;
 			};
 		};
 		AC591DA92FB9E36D009EE538 /* XCRemoteSwiftPackageReference "keychainaccess" */ = {
@@ -460,7 +460,7 @@
 			repositoryURL = "https://github.com/LeoNatan/LNPopupUI.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 3.0.2;
+				minimumVersion = 4.0.1;
 			};
 		};
 		AC591F002FB9F300009EE538 /* XCRemoteSwiftPackageReference "FFmpeg-iOS-Support" */ = {
