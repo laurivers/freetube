@@ -8,7 +8,7 @@ import PythonSupport
 /// solved transparently — same as a desktop install with `deno` available, just running
 /// on JavaScriptCore instead of V8.
 ///
-/// **Four pieces, all installed by `install()`:**
+/// **Five pieces, all installed by `install()`:**
 /// 1. `builtins.eval_js(code) -> str` — Python-callable hook that runs JS via
 ///    `JSEvaluator`, wrapping the source so `console.log` output is captured and returned.
 /// 2. **`yt_dlp_ejs` package shim** — three synthetic modules in `sys.modules`
@@ -26,6 +26,11 @@ import PythonSupport
 ///    (`/dev/null/freetube-deno`), route stdin through `eval_js`, and return the JS result
 ///    on stdout. `yt_dlp.utils.Popen` inherits from `Pop`, so this propagates to yt-dlp's
 ///    EJS provider without it knowing anything has changed.
+/// 5. **Direct Deno provider bridge** — patches yt-dlp's `DenoJCP._run_js_runtime` so the
+///    provider calls `builtins.eval_js` directly. This is the primary path. It avoids routing
+///    the solver's large stdout JSON through two nested fake `Popen` implementations, which
+///    returned an empty string on iOS even though JavaScriptCore had produced a valid result.
+///    The Popen extension remains installed as a compatibility fallback for older yt-dlp builds.
 ///
 /// **Ordering matters.** `install()` must be called **after** `YtDlp()`'s init has run
 /// (which triggers `injectFakePopen` in YoutubeDL-iOS) and **before** `ydl.download`
@@ -50,15 +55,16 @@ nonisolated enum PythonJSBridge {
     /// down while Python still holds the function as `builtins.eval_js`.
     private static var retainedEvalJS: PythonFunction?
 
-    /// Installs all four pieces. Safe to call multiple times — each piece guards against
+    /// Installs all five pieces. Safe to call multiple times — each piece guards against
     /// double-install (re-binding `builtins.eval_js`, idempotent `sys.modules` writes,
     /// idempotent monkey-patches via a sentinel attribute).
     static func install() {
         installEvalJSBuiltin()
         installEJSPackageShim()
         installRuntimeStub()
+        installDirectProviderBridge()
         installPopenExtension()
-        log.info("PythonJSBridge installed (eval_js + yt_dlp_ejs shim + deno stub + Popen ext)")
+        log.info("PythonJSBridge installed (eval_js + yt_dlp_ejs shim + deno stub + direct provider + Popen fallback)")
     }
 
     // MARK: - 1. eval_js builtin
@@ -71,8 +77,11 @@ nonisolated enum PythonJSBridge {
     /// modification. `JSContext` doesn't ship a `console` global, so the prologue defines
     /// one inside the evaluation scope.
     private static func installEvalJSBuiltin() {
-        let evalJS = PythonFunction { (args: PythonObject) -> PythonConvertible in
-            guard let code = String(args[0]) else {
+        // PythonKit's single-argument overload passes the argument itself, not the
+        // containing Python args tuple. Indexing it with `[0]` would therefore keep
+        // only the first character of the JavaScript source.
+        let evalJS = PythonFunction { (argument: PythonObject) -> PythonConvertible in
+            guard let code = String(argument) else {
                 let builtins = Python.import("builtins")
                 let err = builtins.TypeError("eval_js: first argument must be a string")
                 throw PythonError.exception(err, traceback: nil)
@@ -81,8 +90,19 @@ nonisolated enum PythonJSBridge {
             let wrapped = wrapForStdoutCapture(code)
             do {
                 let result = try JSEvaluator.evaluate(wrapped)
+                guard !result.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    let builtins = Python.import("builtins")
+                    let err = builtins.RuntimeError(
+                        "eval_js: JavaScriptCore returned empty stdout (input chars: \(code.count))"
+                    )
+                    throw PythonError.exception(err, traceback: nil)
+                }
+                log.info("eval_js completed inputChars=\(code.count, privacy: .public) outputChars=\(result.count, privacy: .public)")
                 return PythonObject(result)
             } catch {
+                if error is PythonError {
+                    throw error
+                }
                 let builtins = Python.import("builtins")
                 let err = builtins.RuntimeError("eval_js: \(String(describing: error))")
                 throw PythonError.exception(err, traceback: nil)
@@ -238,7 +258,41 @@ nonisolated enum PythonJSBridge {
         print('PythonJSBridge: DenoJsRuntime patch failed:', _e, file=sys.stderr)
     """
 
-    // MARK: - 4. Pop extension (subprocess.Popen monkey-patch)
+    // MARK: - 4. Direct Deno provider bridge
+
+    /// Bypasses subprocess emulation for current yt-dlp builds. `EJSBaseJCP` constructs one
+    /// self-contained synchronous JavaScript program (lib + core + player + JSON request) and
+    /// asks `DenoJCP._run_js_runtime` for its stdout. JavaScriptCore can execute that program
+    /// directly, so sending it through `Popen.communicate()` only adds a fragile transport layer.
+    private static func installDirectProviderBridge() {
+        runSimpleString(directProviderBridgePython)
+        log.info("DenoJCP._run_js_runtime patched to call JavaScriptCore directly")
+    }
+
+    private static let directProviderBridgePython = """
+    try:
+        import builtins
+        from yt_dlp.extractor.youtube.jsc._builtin.deno import DenoJCP
+
+        def _freetube_run_js_runtime(self, stdin):
+            output = builtins.eval_js(stdin)
+            if not isinstance(output, str):
+                output = str(output)
+            if not output.strip():
+                raise RuntimeError(
+                    f'FreeTube JavaScriptCore bridge returned empty stdout '
+                    f'(input chars: {len(stdin)})'
+                )
+            return output
+
+        DenoJCP._run_js_runtime = _freetube_run_js_runtime
+        DenoJCP._freetube_direct_bridge = True
+    except Exception as _e:
+        import sys
+        print('PythonJSBridge: direct DenoJCP patch failed:', _e, file=sys.stderr)
+    """
+
+    // MARK: - 5. Pop extension (subprocess.Popen monkey-patch)
 
     /// Extends the YoutubeDL-iOS `Pop` class (already installed as `subprocess.Popen` by
     /// `injectFakePopen`) to also handle the fake-deno argv path. `yt_dlp.utils.Popen` is

@@ -318,7 +318,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 26;
 				DEVELOPMENT_TEAM = 8PKTVAZM9Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -361,7 +361,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 26;
 				DEVELOPMENT_TEAM = 8PKTVAZM9Q;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_TESTABILITY = YES;
@@ -427,8 +427,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/b5i/YouTubeKit";
 			requirement = {
-				branch = main;
-				kind = branch;
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.8.0;
 			};
 		};
 		AC591D872FB9E2BE009EE538 /* XCRemoteSwiftPackageReference "YoutubeDL-iOS" */ = {
