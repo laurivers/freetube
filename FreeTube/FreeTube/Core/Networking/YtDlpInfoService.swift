@@ -52,6 +52,16 @@ final class YtDlpInfoService: Sendable {
             return media
         } catch {
             log.error("[probe] failed: \(String(describing: error), privacy: .public)")
+            let description = String(describing: error)
+            if description.contains("No video could be found in this tweet") {
+                do {
+                    let media = try await TwitterMediaFallbackService().fetch(url: url)
+                    log.info("[probe] Twitter fallback OK — \(media.formats.count, privacy: .public) direct formats")
+                    return media
+                } catch {
+                    log.error("[probe] Twitter fallback failed: \(String(describing: error), privacy: .public)")
+                }
+            }
             throw error
         }
     }

@@ -184,9 +184,19 @@ public nonisolated func freetube_yt_dlp_extract_info(url: String) async throws -
     // instead of spinning forever. yt-dlp's default is no timeout. The user can wait
     // 30s for an error; they cannot wait 3 minutes for the spinner.
     opts["socket_timeout"] = 30.0
-    opts["extractor_args"] = PythonObject([
-        "youtube": ["player_client=tv_simply,tv_embedded,web_creator,mweb,web_safari,ios,android_vr", "formats=missing_pot"]
+    // `extractor_args` must be nested as extractor → argument → [values]. A flat
+    // `["api=syndication"]` array is accepted into the options dictionary but ignored
+    // by `_configuration_arg`, leaving Twitter on its default GraphQL API.
+    var extractorArgs = PythonObject([:] as [String: PythonObject])
+    extractorArgs["youtube"] = PythonObject([
+        "player_client": ["tv_simply", "tv_embedded", "web_creator", "mweb", "web_safari", "ios", "android_vr"],
+        "formats": ["missing_pot"]
     ] as [String: [String]])
+    // X's default GraphQL response can omit `amplify_video` media for public,
+    // sensitive posts even though the video is visible in the app. yt-dlp's
+    // supported syndication API path returns those media variants without login.
+    extractorArgs["twitter"] = PythonObject(["api": ["syndication"]] as [String: [String]])
+    opts["extractor_args"] = extractorArgs
     opts["js_runtimes"] = PythonObject(["deno": ["path": PythonJSBridge.fakeDenoPath]])
     // CLAUDE.md §15.3: yt-dlp's `YoutubeDL.__init__` runs an ffmpeg version probe
     // (`Popen(['ffmpeg', '-bsfs']).communicate()`). On iOS the YoutubeDL-iOS `Pop` class
