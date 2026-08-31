@@ -54,15 +54,15 @@ final class PlayerStateManager {
     private let preferences: UserPreferences
     private let log = AppLog(subsystem: "com.leshko.freetube", category: "PlayerStateManager")
 
-    /// Sticky "this queue is endless" intent. Set to `true` whenever the user loads a video
-    /// without explicitly skipping recommendations (Home / Search / Mini-player / row taps),
-    /// and `false` for curated batch actions like playlist's Play all / Shuffle all. Drives:
+    /// Sticky "this queue is endless" intent. Recommendations are disabled by default, so
+    /// ordinary video taps and curated playlist actions both leave the queue untouched. This can
+    /// still be enabled explicitly by calling `load(..., skipRecommendations: false)`. Drives:
     ///   1. The per-load `fillQueueWithRecommendations` call in `resolveAndPlay`.
     ///   2. The auto-advance dead-end recovery in `playNext()` — when the queue runs out and
     ///      repeat is off, we fire a fresh recs fetch using the queue's last item as a seed,
     ///      then advance once new items land. That gives the requested "endless queue" feel:
     ///      whenever you reach the latest item, recommendations refill behind it.
-    private var queueAcceptsRecommendations = true
+    private var queueAcceptsRecommendations = false
 
     private var timeObserver: Any?
     private var timeControlStatusObservation: NSKeyValueObservation?
@@ -109,8 +109,8 @@ final class PlayerStateManager {
     /// - Parameter skipRecommendations: when `true`, suppresses the post-play "fill queue with
     ///   YouTube recommendations" call. Pass this from explicit batch actions that already
     ///   populated a curated queue — playlist's Play all / Shuffle all — so the user's queue
-    ///   stays exactly what they chose. Default is `false` so single-video taps from Home /
-    ///   Search / Mini-player still get the YouTube-app-style autoplay chain.
+    ///   stays exactly what they chose. Default is `true`, which also keeps ordinary single-video
+    ///   taps from silently adding YouTube recommendations to the playback queue.
     /// Play a local file already on disk — used by the **Link** tab's completed downloads.
     ///
     /// **Why a separate entry point and not `load(video:)`:** the YouTube-shaped resolver in
@@ -166,7 +166,7 @@ final class PlayerStateManager {
         play()
     }
 
-    func load(_ video: Video, autoplay: Bool = true, skipRecommendations: Bool = false) {
+    func load(_ video: Video, autoplay: Bool = true, skipRecommendations: Bool = true) {
         log.info("load(\(video.id, privacy: .public)) autoplay=\(autoplay, privacy: .public) skipRecs=\(skipRecommendations, privacy: .public)")
         queueAcceptsRecommendations = !skipRecommendations
         // Pause and tear down anything currently playing. Otherwise we'd keep streaming audio from
