@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import Photos
 
 /// Writes an already-downloaded local video into the system photo library.
@@ -60,5 +61,29 @@ enum PhotoLibrarySaver {
         let current = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         guard current == .notDetermined else { return current }
         return await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+    }
+}
+
+/// Shared UI state for screens that offer the same "Save to Photos" action.
+@available(iOS 17.0, *)
+@Observable
+@MainActor
+final class PhotoLibrarySaveCoordinator {
+    var errorState: ErrorState?
+    var showConfirmation = false
+    private(set) var savedTitle = ""
+    private(set) var savingIDs: Set<String> = []
+
+    func save(fileURL: URL, itemID: String, title: String) async {
+        guard savingIDs.insert(itemID).inserted else { return }
+        defer { savingIDs.remove(itemID) }
+
+        do {
+            try await PhotoLibrarySaver.saveVideo(at: fileURL)
+            savedTitle = title
+            showConfirmation = true
+        } catch {
+            errorState = ErrorState(from: error)
+        }
     }
 }

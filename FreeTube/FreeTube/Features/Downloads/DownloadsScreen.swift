@@ -6,6 +6,7 @@ import UIKit
 @available(iOS 17.0, *)
 struct DownloadsScreen: View {
     @State private var model = DownloadsViewModel()
+    @State private var photoSaver = PhotoLibrarySaveCoordinator()
     /// File-system + xattr backed downloads list. Replaces the SwiftData `@Query` —
     /// the store rebuilds `entries` from the Documents root on launch and after every
     /// `DownloadsStore.didChange` notification (posted by the YouTube + URL writers).
@@ -143,10 +144,11 @@ struct DownloadsScreen: View {
                 Text("“\(item.title)” will be permanently removed from your device.")
             }
             .errorToast(Bindable(model).errorState)
-            .alert("Saved to Photos", isPresented: Bindable(model).showPhotoSaveConfirmation) {
+            .errorToast(Bindable(photoSaver).errorState)
+            .alert("Saved to Photos", isPresented: Bindable(photoSaver).showConfirmation) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("“\(model.savedPhotoTitle)” is now in your photo library.")
+                Text("“\(photoSaver.savedTitle)” is now in your photo library.")
             }
             // Presents UIActivityViewController for the per-row "Open in…" action. The bound bool
             // mirrors `shareFileURL` so the sheet lifecycle matches user intent.
@@ -268,13 +270,6 @@ struct DownloadsScreen: View {
     @ViewBuilder
     private func rowMenu(_ item: SavedItem) -> some View {
         Menu {
-            Button {
-                if let url = sourceURL(for: item) {
-                    UIApplication.shared.open(url)
-                }
-            } label: {
-                Label("Open in browser", systemImage: "safari")
-            }
             // System "Open in…" share sheet for the downloaded mp4 — opens UIActivityViewController
             // with the local file URL so the user can send it to VLC, Files, AirDrop, etc. We use
             // a Button + sheet rather than `ShareLink` because the latter is unreliable for
@@ -284,10 +279,17 @@ struct DownloadsScreen: View {
             } label: {
                 Label("Open in…", systemImage: "square.and.arrow.up")
             }
+            Button {
+                if let url = sourceURL(for: item) {
+                    UIPasteboard.general.string = url.absoluteString
+                }
+            } label: {
+                Label("Copy URL", systemImage: "link")
+            }
             if item.canSaveToPhotos {
                 Button {
                     Task {
-                        await model.saveToPhotos(
+                        await photoSaver.save(
                             fileURL: item.fileURL,
                             itemID: item.id,
                             title: item.title
@@ -296,7 +298,14 @@ struct DownloadsScreen: View {
                 } label: {
                     Label("Save to Photos", systemImage: "photo.badge.arrow.down")
                 }
-                .disabled(model.savingToPhotosIDs.contains(item.id))
+                .disabled(photoSaver.savingIDs.contains(item.id))
+            }
+            Button {
+                if let url = sourceURL(for: item) {
+                    UIApplication.shared.open(url)
+                }
+            } label: {
+                Label("Open in browser", systemImage: "safari")
             }
             // "Show in Finder" only renders on macOS runtimes (Designed-for-iPad-on-Mac
             // or real Catalyst). On iPhone/iPad the Files app doesn't accept "select this
@@ -322,13 +331,6 @@ struct DownloadsScreen: View {
                         Label("Add to favorites", systemImage: "hand.thumbsup")
                     }
                 }
-            }
-            Button {
-                if let url = sourceURL(for: item) {
-                    UIPasteboard.general.string = url.absoluteString
-                }
-            } label: {
-                Label("Copy URL", systemImage: "link")
             }
             Divider()
             Button(role: .destructive) {

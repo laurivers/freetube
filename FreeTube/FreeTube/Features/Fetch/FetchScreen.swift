@@ -16,6 +16,7 @@ import UIKit
 struct FetchScreen: View {
     @State private var model = FetchViewModel()
     @State private var downloads = URLDownloadManager.shared
+    @State private var photoSaver = PhotoLibrarySaveCoordinator()
     @Environment(PlayerStateManager.self) private var player
     @FocusState private var fieldFocused: Bool
 
@@ -77,8 +78,18 @@ struct FetchScreen: View {
                             FetchQueueRow(
                                 entry: entry,
                                 state: model.rowState(for: entry),
+                                isSavingToPhotos: photoSaver.savingIDs.contains(entry.url),
                                 onTap: { handleTap(entry: entry) },
                                 onRedownload: { model.reopenProbe(for: entry) },
+                                onSaveToPhotos: { fileURL in
+                                    Task {
+                                        await photoSaver.save(
+                                            fileURL: fileURL,
+                                            itemID: entry.url,
+                                            title: entry.title ?? entry.url
+                                        )
+                                    }
+                                },
                                 onDelete: { model.deleteRecent(entry) }
                             )
                         }
@@ -99,6 +110,12 @@ struct FetchScreen: View {
             .navigationTitle("Link")
             .navigationDestination(isPresented: probeNavBinding) {
                 FetchProbeView(model: model)
+            }
+            .errorToast(Bindable(photoSaver).errorState)
+            .alert("Saved to Photos", isPresented: Bindable(photoSaver).showConfirmation) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("“\(photoSaver.savedTitle)” is now in your photo library.")
             }
         }
     }
@@ -148,8 +165,10 @@ struct FetchScreen: View {
 struct FetchQueueRow: View {
     let entry: RecentFetchURL
     let state: FetchViewModel.RowState
+    let isSavingToPhotos: Bool
     let onTap: () -> Void
     let onRedownload: () -> Void
+    let onSaveToPhotos: (URL) -> Void
     let onDelete: () -> Void
 
     @State private var showingShareSheet = false
@@ -285,6 +304,26 @@ struct FetchQueueRow: View {
                 } label: {
                     Label("Open in…", systemImage: "square.and.arrow.up")
                 }
+                Button {
+                    UIPasteboard.general.string = entry.url
+                } label: {
+                    Label("Copy URL", systemImage: "doc.on.doc")
+                }
+                if PhotoLibrarySaver.canSaveVideo(at: fileURL) {
+                    Button {
+                        onSaveToPhotos(fileURL)
+                    } label: {
+                        Label("Save to Photos", systemImage: "photo.badge.arrow.down")
+                    }
+                    .disabled(isSavingToPhotos)
+                }
+                Button {
+                    if let url = URL(string: entry.url) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Label("Open in browser", systemImage: "safari")
+                }
                 // "Reveal in Finder" is meaningful only when the app is running on macOS
                 // (either via "Designed for iPad" or true Catalyst). On iOS the Files app
                 // surfaces our Documents directory but there's no shortcut to
@@ -295,18 +334,6 @@ struct FetchQueueRow: View {
                     } label: {
                         Label("Reveal in Finder", systemImage: "folder")
                     }
-                }
-                Button {
-                    UIPasteboard.general.string = entry.url
-                } label: {
-                    Label("Copy URL", systemImage: "doc.on.doc")
-                }
-                Button {
-                    if let url = URL(string: entry.url) {
-                        UIApplication.shared.open(url)
-                    }
-                } label: {
-                    Label("Open in browser", systemImage: "safari")
                 }
                 Divider()
                 Button(role: .destructive) {
