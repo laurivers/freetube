@@ -143,6 +143,11 @@ struct DownloadsScreen: View {
                 Text("“\(item.title)” will be permanently removed from your device.")
             }
             .errorToast(Bindable(model).errorState)
+            .alert("Saved to Photos", isPresented: Bindable(model).showPhotoSaveConfirmation) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("“\(model.savedPhotoTitle)” is now in your photo library.")
+            }
             // Presents UIActivityViewController for the per-row "Open in…" action. The bound bool
             // mirrors `shareFileURL` so the sheet lifecycle matches user intent.
             .sheet(isPresented: Binding(
@@ -278,6 +283,20 @@ struct DownloadsScreen: View {
                 shareFileURL = item.fileURL
             } label: {
                 Label("Open in…", systemImage: "square.and.arrow.up")
+            }
+            if item.canSaveToPhotos {
+                Button {
+                    Task {
+                        await model.saveToPhotos(
+                            fileURL: item.fileURL,
+                            itemID: item.id,
+                            title: item.title
+                        )
+                    }
+                } label: {
+                    Label("Save to Photos", systemImage: "photo.badge.arrow.down")
+                }
+                .disabled(model.savingToPhotosIDs.contains(item.id))
             }
             // "Show in Finder" only renders on macOS runtimes (Designed-for-iPad-on-Mac
             // or real Catalyst). On iPhone/iPad the Files app doesn't accept "select this
@@ -604,6 +623,12 @@ struct SavedItem: Identifiable {
     /// menu behavior in `DownloadsScreen` so we don't accidentally route an Instagram
     /// download through the YouTube resolver.
     var isFromURL: Bool { originalURL != nil }
+
+    /// Photos accepts the containers FreeTube itself produces for video downloads. Audio-only
+    /// and WebM files keep the general-purpose "Open in…" action instead.
+    var canSaveToPhotos: Bool {
+        PhotoLibrarySaver.canSaveVideo(at: fileURL)
+    }
 
     init(from entry: DownloadEntry) {
         let fallbackID = entry.fileURL.deletingPathExtension().lastPathComponent

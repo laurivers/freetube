@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "“%@” is now in your photo library." : {
+
+    },
     "“%@” will be permanently removed from your device." : {
       "localizations" : {
         "de" : {
@@ -5537,6 +5540,9 @@
         }
       }
     },
+    "Save to Photos" : {
+
+    },
     "Saved on device" : {
       "localizations" : {
         "de" : {
@@ -5604,6 +5610,9 @@
           }
         }
       }
+    },
+    "Saved to Photos" : {
+
     },
     "Search" : {
       "localizations" : {
