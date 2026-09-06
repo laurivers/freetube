@@ -52,17 +52,22 @@ final class YtDlpInfoService: Sendable {
             return media
         } catch {
             log.error("[probe] failed: \(String(describing: error), privacy: .public)")
-            let description = String(describing: error)
-            if description.contains("No video could be found in this tweet") {
-                do {
-                    let media = try await TwitterMediaFallbackService().fetch(url: url)
-                    log.info("[probe] Twitter fallback OK — \(media.formats.count, privacy: .public) direct formats")
-                    return media
-                } catch {
-                    log.error("[probe] Twitter fallback failed: \(String(describing: error), privacy: .public)")
-                }
+            let ytDlpError = error
+            // Do not couple the fallback to yt-dlp's error text. Upstream has emitted
+            // several equivalent messages for missing Twitter media (for example
+            // "No video could be found in this tweet" and "Video #1 is unavailable").
+            // The fallback service validates that this is an X/Twitter status URL before
+            // making a network request, so it is safe to offer every failed probe to it.
+            do {
+                let media = try await TwitterMediaFallbackService().fetch(url: url)
+                log.info("[probe] Twitter fallback OK — \(media.formats.count, privacy: .public) direct formats")
+                return media
+            } catch TwitterMediaFallbackService.FallbackError.notTwitterStatusURL {
+                // Expected for all non-Twitter URLs; preserve yt-dlp's original error.
+            } catch {
+                log.error("[probe] Twitter fallback failed: \(String(describing: error), privacy: .public)")
             }
-            throw error
+            throw ytDlpError
         }
     }
 
