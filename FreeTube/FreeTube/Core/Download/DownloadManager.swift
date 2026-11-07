@@ -602,7 +602,7 @@ final class DownloadManager: TemporaryDownloading {
                 // the progress overlay to a spinner ("Processing…") instead of leaving it at 100%.
                 if message.contains("[Merger]") || message.contains("[ExtractAudio]") || message.contains("Fixup") {
                     let id = video.id
-                    Task { @MainActor in
+                    Task { @MainActor [weak self, id] in
                         self?.progressByVideoID.removeValue(forKey: id)
                     }
                 }

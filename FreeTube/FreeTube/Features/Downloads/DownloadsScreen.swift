@@ -632,7 +632,7 @@ struct SavedItem: Identifiable {
         PhotoLibrarySaver.canSaveVideo(at: fileURL)
     }
 
-    init(from entry: DownloadEntry) {
+    nonisolated init(from entry: DownloadEntry) {
         let fallbackID = entry.fileURL.deletingPathExtension().lastPathComponent
         self.fileURL = entry.fileURL
         self.fileSize = entry.fileSize

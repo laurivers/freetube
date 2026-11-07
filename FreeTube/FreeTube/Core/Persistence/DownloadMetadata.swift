@@ -10,7 +10,7 @@ import Foundation
 /// **What's NOT stored here**: the file URL itself and the file size are recoverable from
 /// the file system at read time, so we don't duplicate them in the xattr — saves bytes
 /// and avoids drift when the file is moved.
-struct DownloadMetadata: Codable, Sendable {
+nonisolated struct DownloadMetadata: Codable, Sendable {
     /// YouTube videoID for YouTube downloads; the pasted URL string for Link-tab items.
     /// Whatever uniquely identifies the *source* (filename can't, because URL items
     /// sanitise the title into the filename).

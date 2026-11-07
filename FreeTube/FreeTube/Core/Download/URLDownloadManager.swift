@@ -42,7 +42,7 @@ final class URLDownloadManager {
     // particular) can read these without hopping back to the main actor for every log
     // line / cookie peek.
     @ObservationIgnored private nonisolated let log = AppLog(subsystem: "com.leshko.freetube", category: "URLDownloadManager")
-    @ObservationIgnored private nonisolated let preferences = UserPreferences()
+    @ObservationIgnored private let preferences = UserPreferences()
 
     private init() {}
 
@@ -679,7 +679,7 @@ struct FetchJob: Identifiable, Sendable, Equatable {
 /// **Encoder availability** (bundled `ffmpeg-ios-lame` variant):
 ///   - `h264_videotoolbox` for video → H.264 (Apple hardware, GPL-free)
 ///   - `libmp3lame` for audio → MP3
-struct ConversionOptions: Sendable {
+nonisolated struct ConversionOptions: Sendable {
     var videoToH264: Bool = false
     var audioToMP3: Bool = false
 

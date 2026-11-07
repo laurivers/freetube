@@ -8,7 +8,7 @@ import Foundation
 /// channelName, isShort, isLive). Generic media has none of those — just title, uploader,
 /// duration, and a flat list of downloadable formats. Mixing the two would invite YouTube
 /// assumptions to leak into the generic path.
-struct RemoteMedia: Identifiable, Sendable, Hashable {
+nonisolated struct RemoteMedia: Identifiable, Sendable, Hashable {
     /// yt-dlp's `id` for the source's own identifier (YouTube video ID, Vimeo numeric ID, etc.).
     let id: String
     /// Original URL the user pasted, normalised through yt-dlp's `webpage_url`.
@@ -34,7 +34,7 @@ struct RemoteMedia: Identifiable, Sendable, Hashable {
 
 /// One downloadable variant. Captures the fields the UI renders + the fields the downloader
 /// needs to dispatch (URL, protocol, manifest-ness).
-struct RemoteFormat: Identifiable, Sendable, Hashable {
+nonisolated struct RemoteFormat: Identifiable, Sendable, Hashable {
     /// yt-dlp's stable `format_id` (e.g. "137", "299+140", "hls-720p"). Used as `Identifiable.id`
     /// and as the `-f` argument when re-handed to yt-dlp would be required (we don't actually
     /// re-invoke yt-dlp — we use `url` directly — but keeping the id around is useful for logs).
@@ -104,7 +104,7 @@ struct RemoteFormat: Identifiable, Sendable, Hashable {
 
 /// One subtitle track yt-dlp found. We don't expose these in v1's UI, but the field is in the
 /// model so a future "Embed subtitles" toggle has somewhere to read from.
-struct RemoteSubtitle: Identifiable, Sendable, Hashable {
+nonisolated struct RemoteSubtitle: Identifiable, Sendable, Hashable {
     /// "en", "en-auto", "es", etc.
     let id: String
     let langName: String?

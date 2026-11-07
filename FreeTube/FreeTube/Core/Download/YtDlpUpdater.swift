@@ -6,12 +6,10 @@ import YoutubeDL
 
 /// Manages the on-disk yt-dlp Python module: weekly auto-refresh + manual "Update now".
 ///
-/// **Why this exists.** `YoutubeDL-iOS` downloads yt-dlp from its GitHub Releases on first
-/// launch (`YoutubeDL.loadPythonModule` → `downloadPythonModule`) and then never touches it
-/// again. There's no version check, no TTL, no scheduled refresh — once the file is on disk
-/// the package reuses it forever. Installed apps get stuck on whatever yt-dlp was current at
-/// first launch, which is a problem when YouTube rotates the n-cipher or player.js layout
-/// faster than monthly TestFlight builds can ship.
+/// **Why this exists.** `YoutubeDL-iOS` downloads the latest yt-dlp executable from GitHub
+/// Releases on first launch (`YoutubeDL.loadPythonModule` → `downloadPythonModule`) and then
+/// reuses it from disk. The embedded Python runtime is managed by the local Python-iOS package,
+/// so yt-dlp can follow its normal upstream release cadence.
 ///
 /// **What we add:**
 /// 1. **Weekly TTL.** `refreshIfStale()` (called from `AppEnvironment.init`) checks
@@ -28,21 +26,18 @@ import YoutubeDL
 /// touch `YoutubeDL.downloadPythonModule` (a static method on the package) from the main actor.
 ///
 /// **EJS hash compatibility caveat.** yt-dlp validates its bundled EJS solver against
-/// `vendor.HASHES`. Our shipped `core.min.js`/`lib.min.js` are pinned at version `0.8.0` —
-/// if yt-dlp auto-updates past a major/minor version that changes those hashes, the EJS path
-/// silently disables and n-cipher solving falls back to the failing state. Worth a CLAUDE.md
-/// re-pull note when a refresh lands a new yt-dlp version (visible in Settings's version row).
+/// `vendor.HASHES`. The bundled `core.min.js`/`lib.min.js` are pinned at version `0.8.0`; when
+/// the upstream EJS major/minor changes, re-pull those resources together with yt-dlp.
 @available(iOS 17.0, *)
 @Observable
 @MainActor
 final class YtDlpUpdater {
     static let shared = YtDlpUpdater()
 
-    /// Re-download if the current file is older than this. One week is a deliberate compromise:
-    /// long enough that we don't burn bandwidth on every cold launch, short enough that
-    /// breaking-yt-dlp-updates land within a week of release. yt-dlp's own release cadence is
-    /// roughly weekly, so a 7-day TTL aligns with how often there's something new to pull.
     static let ttl: TimeInterval = 7 * 24 * 60 * 60
+
+
+
 
     private let log = AppLog(subsystem: "com.leshko.freetube", category: "YtDlpUpdater")
     private let preferences = UserPreferences()

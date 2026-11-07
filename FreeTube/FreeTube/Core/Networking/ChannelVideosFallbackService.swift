@@ -20,7 +20,7 @@ import OSLog
 /// pagination through our own decoder too. Mixing decoders mid-pagination would dead-end
 /// at the same lockup gap on the very next page.
 @available(iOS 17.0, *)
-final class ChannelVideosFallbackService: Sendable {
+nonisolated final class ChannelVideosFallbackService: Sendable {
     private let session: URLSession
     private let client: YouTubeKitClient
     private let state = State()

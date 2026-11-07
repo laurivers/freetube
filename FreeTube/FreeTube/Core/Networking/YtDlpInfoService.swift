@@ -14,7 +14,7 @@ import PythonKit
 /// crash inside `_PyInterpreterState_GET`. See `DownloadManager.runYoutubeDLDownload`'s
 /// progress closure for the canonical "extract to primitives, ship primitives" pattern.
 @available(iOS 17.0, *)
-final class YtDlpInfoService: Sendable {
+nonisolated final class YtDlpInfoService: Sendable {
     private let log = AppLog(subsystem: "com.leshko.freetube", category: "YtDlpInfoService")
 
     func probe(url: String) async throws -> RemoteMedia {

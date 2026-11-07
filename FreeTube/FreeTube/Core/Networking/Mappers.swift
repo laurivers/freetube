@@ -3,7 +3,7 @@ import YouTubeKit
 
 /// Maps YouTubeKit response types into the app's domain models. Lives in `Core/Networking/` per
 /// CLAUDE.md §6 — services use these helpers; nothing outside this folder should see YouTubeKit types.
-enum Mappers {
+nonisolated enum Mappers {
 
     // MARK: - Thumbnails
 

@@ -46,10 +46,6 @@ public nonisolated func freetube_yt_dlp(
 ) async throws {
     let bridgeLog = AppLog(subsystem: "com.leshko.freetube", category: "FreeTubeYtDlp")
 
-    // Step 1+2 (collapsed): `YtDlp()`'s convenience init creates its own Context() internally
-    // and calls `loadPythonModule()`, which initializes Python, downloads yt-dlp on first run,
-    // and (critically for us) runs `injectFakePopen` — replacing `subprocess.Popen` with the
-    // package's ffmpeg-only `Pop` class. After this returns we own the splice point.
     let ytdlp = try await YtDlp()
 
     // Splice point: now that `injectFakePopen` has run, layer our extension on top. Our
@@ -104,8 +100,7 @@ public nonisolated func freetube_yt_dlp_extract_info(url: String) async throws -
     let bridgeLog = AppLog(subsystem: "com.leshko.freetube", category: "FreeTubeYtDlp")
     let ytdlpLog = AppLog(subsystem: "com.leshko.freetube", category: "ytdlp")
 
-    bridgeLog.info("extract_info: about to await YtDlp() init")
-    let ytdlp = try await YtDlp()
+    _ = try await YtDlp()
     bridgeLog.info("extract_info: YtDlp ready, installing JS bridge before extract_info")
     PythonJSBridge.install()
     bridgeLog.info("extract_info: JS bridge install complete; configuring ydl_opts")
@@ -145,7 +140,7 @@ public nonisolated func freetube_yt_dlp_extract_info(url: String) async throws -
     let tailTask = Task.detached(priority: .utility) {
         // Open the FileHandle inside the task so its `FileHandle` reference doesn't
         // need to cross the Sendable boundary — `FileHandle` isn't `Sendable`.
-        guard let handle = try? FileHandle(forReadingAtPath: stderrPath) else { return }
+        guard let handle = FileHandle(forReadingAtPath: stderrPath) else { return }
         defer { try? handle.close() }
         var carry = ""
         while !Task.isCancelled {
@@ -172,7 +167,7 @@ public nonisolated func freetube_yt_dlp_extract_info(url: String) async throws -
         }
     }
 
-    var opts = PythonObject([:] as [String: PythonObject])
+    let opts = PythonObject([:] as [String: PythonObject])
     // Verbose so we see every extractor step in the redirected stderr. Removing
     // `quiet`/`no_warnings` overrides the defaults.
     opts["verbose"] = true
@@ -187,7 +182,7 @@ public nonisolated func freetube_yt_dlp_extract_info(url: String) async throws -
     // `extractor_args` must be nested as extractor → argument → [values]. A flat
     // `["api=syndication"]` array is accepted into the options dictionary but ignored
     // by `_configuration_arg`, leaving Twitter on its default GraphQL API.
-    var extractorArgs = PythonObject([:] as [String: PythonObject])
+    let extractorArgs = PythonObject([:] as [String: PythonObject])
     extractorArgs["youtube"] = PythonObject([
         "player_client": ["tv_simply", "tv_embedded", "web_creator", "mweb", "web_safari", "ios", "android_vr"],
         "formats": ["missing_pot"]

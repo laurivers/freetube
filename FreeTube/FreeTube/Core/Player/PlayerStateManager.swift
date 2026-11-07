@@ -73,14 +73,13 @@ final class PlayerStateManager {
     private var playerErrorObservation: NSKeyValueObservation?
     private var defaultRateObservation: NSKeyValueObservation?
     init(
-        queue: QueueManager = QueueManager(),
-        resolver: any PlaybackResolving = PlaybackResolver(),
-        preferences: UserPreferences = UserPreferences()
+        queue: QueueManager? = nil,
+        resolver: (any PlaybackResolving)? = nil,
+        preferences: UserPreferences? = nil
     ) {
-        self.queue = queue
-        self.resolver = resolver
-        self.preferences = preferences
-        // Keep the audio track running when the player view goes off-screen (popup minimize, app
+        self.queue = queue ?? QueueManager()
+        self.resolver = resolver ?? PlaybackResolver()
+        self.preferences = preferences ?? UserPreferences()
         // backgrounded). Without this, AVPlayer pauses video tracks as soon as their pixel buffer
         // pipeline is no longer visible, which manifests as "audio cuts out the moment you collapse
         // the mini-player." Pairs with the `.playback` AVAudioSession configured at launch.
@@ -89,7 +88,7 @@ final class PlayerStateManager {
         // speed menu writes, and `AVPlayer.play()` resumes at this rate (not the transient `rate`).
         // Setting it *before* installObservers keeps the KVO from firing back and re-saving the
         // same value during launch.
-        player.defaultRate = Float(preferences.playbackRate)
+        player.defaultRate = Float(self.preferences.playbackRate)
         installObservers()
     }
 
@@ -440,7 +439,7 @@ final class PlayerStateManager {
         if !skipRecommendations {
             Task { [weak self] in
                 await self?.fillQueueWithRecommendations(for: video)
-                await self?.prefetchNextUpcoming()
+                self?.prefetchNextUpcoming()
             }
         } else {
             prefetchNextUpcoming()
@@ -670,11 +669,12 @@ final class PlayerStateManager {
         guard let url = video.thumbnailURL else { return }
         KingfisherManager.shared.retrieveImage(with: url) { [weak self, videoID = video.id] result in
             guard case .success(let value) = result else { return }
-            Task { @MainActor in
+            let image = value.image
+            Task { @MainActor [weak self, videoID, image] in
                 guard let self else { return }
                 // Drop the result if the user switched videos while the fetch was inflight.
                 guard self.currentVideo?.id == videoID else { return }
-                self.currentArtwork = value.image
+                self.currentArtwork = image
                 self.updateNowPlaying()
             }
         }

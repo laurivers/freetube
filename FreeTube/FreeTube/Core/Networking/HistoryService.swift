@@ -73,8 +73,12 @@ final class HistoryService: HistoryServicing {
     private func flatten(_ blocks: [HistoryResponse.HistoryBlock]) -> [Video] {
         var out: [Video] = []
         for block in blocks {
-            for entry in block.videosArray {
-                out.append(Mappers.video(from: entry.video))
+            for content in block.contentsArray {
+                if let entry = content as? HistoryResponse.HistoryBlock.VideoWithToken {
+                    out.append(Mappers.video(from: entry.video))
+                } else if let shorts = content as? HistoryResponse.HistoryBlock.ShortsBlock {
+                    out.append(contentsOf: shorts.shorts.map(Mappers.video(from:)))
+                }
             }
         }
         return out

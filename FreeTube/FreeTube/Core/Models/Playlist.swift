@@ -1,6 +1,6 @@
 import Foundation
 
-struct Playlist: Identifiable, Hashable, Sendable {
+nonisolated struct Playlist: Identifiable, Hashable, Sendable {
     let id: String
     let title: String
     let channelID: String?
@@ -18,7 +18,7 @@ extension Playlist {
     /// Convenience initializer that defaults `viewCount` to nil so existing call sites
     /// (mappers from search results, channel tabs, etc.) keep compiling without each one
     /// being updated to pass an unknown view count.
-    init(
+    nonisolated init(
         id: String,
         title: String,
         channelID: String?,
@@ -42,7 +42,7 @@ extension Playlist {
     }
 }
 
-struct PlaylistDetails: Sendable {
+nonisolated struct PlaylistDetails: Sendable {
     let playlist: Playlist
     let videos: [Video]
     let continuationToken: String?

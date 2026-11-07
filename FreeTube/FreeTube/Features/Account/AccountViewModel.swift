@@ -13,11 +13,11 @@ final class AccountViewModel {
     private let session: SessionManager
 
     init(
-        service: any AccountServicing = AccountService(),
-        session: SessionManager = .shared
+        service: (any AccountServicing)? = nil,
+        session: SessionManager? = nil
     ) {
-        self.service = service
-        self.session = session
+        self.service = service ?? AccountService()
+        self.session = session ?? .shared
     }
 
     func load() async {

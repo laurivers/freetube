@@ -12,8 +12,8 @@ final class DownloadsViewModel {
 
     let manager: DownloadManager
 
-    init(manager: DownloadManager = .shared) {
-        self.manager = manager
+    init(manager: DownloadManager? = nil) {
+        self.manager = manager ?? .shared
     }
 
     /// Cancel a transfer-queue row. Routes by snapshot kind:

@@ -151,7 +151,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				AC591D762FB9E26E009EE538 /* XCRemoteSwiftPackageReference "YouTubeKit" */,
-				AC591D872FB9E2BE009EE538 /* XCRemoteSwiftPackageReference "YoutubeDL-iOS" */,
+				AC591D872FB9E2BE009EE538 /* XCLocalSwiftPackageReference "Vendor/YoutubeDL-iOS" */,
 				AC591DA62FB9E35C009EE538 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				AC591DA92FB9E36D009EE538 /* XCRemoteSwiftPackageReference "keychainaccess" */,
 				AC591E132FB9F181009EE538 /* XCRemoteSwiftPackageReference "LNPopupUI" */,
@@ -422,6 +422,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		AC591D872FB9E2BE009EE538 /* XCLocalSwiftPackageReference "Vendor/YoutubeDL-iOS" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Vendor/YoutubeDL-iOS;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		AC591D762FB9E26E009EE538 /* XCRemoteSwiftPackageReference "YouTubeKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -429,14 +436,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 2.8.0;
-			};
-		};
-		AC591D872FB9E2BE009EE538 /* XCRemoteSwiftPackageReference "YoutubeDL-iOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/kewlbear/YoutubeDL-iOS.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.0.9;
 			};
 		};
 		AC591DA62FB9E35C009EE538 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
@@ -460,7 +459,7 @@
 			repositoryURL = "https://github.com/LeoNatan/LNPopupUI.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 4.0.1;
+				minimumVersion = 4.0.4;
 			};
 		};
 		AC591F002FB9F300009EE538 /* XCRemoteSwiftPackageReference "FFmpeg-iOS-Support" */ = {
@@ -489,7 +488,7 @@
 		};
 		AC591D882FB9E2BE009EE538 /* YoutubeDL */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = AC591D872FB9E2BE009EE538 /* XCRemoteSwiftPackageReference "YoutubeDL-iOS" */;
+			package = AC591D872FB9E2BE009EE538 /* XCLocalSwiftPackageReference "Vendor/YoutubeDL-iOS" */;
 			productName = YoutubeDL;
 		};
 		AC591DA72FB9E35C009EE538 /* Kingfisher */ = {

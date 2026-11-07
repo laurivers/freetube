@@ -5,7 +5,7 @@ import OSLog
 /// Owns the SwiftData `ModelContainer`. Inject the container into the SwiftUI scene via
 /// `.modelContainer(_:)` so any `@Query` view picks it up automatically.
 @available(iOS 17.0, *)
-enum PersistenceController {
+nonisolated enum PersistenceController {
     static let log = AppLog(subsystem: "com.leshko.freetube", category: "Persistence")
 
     static let sharedContainer: ModelContainer = {

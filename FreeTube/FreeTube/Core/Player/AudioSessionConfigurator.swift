@@ -15,10 +15,26 @@ enum AudioSessionConfigurator {
         let session = AVAudioSession.sharedInstance()
         do {
             try session.setCategory(.playback, mode: .moviePlayback, options: [])
-            try session.setActive(true, options: [])
-            log.info("Audio session configured for .playback/.moviePlayback")
         } catch {
-            log.error("Failed to configure audio session: \(String(describing: error), privacy: .public)")
+            log.error("Failed to configure audio category: \(String(describing: error), privacy: .public)")
+            return
+        }
+
+        if #available(iOS 27.0, *) {
+            session.activate(options: []) { activated, error in
+                if activated {
+                    log.info("Audio session configured for .playback/.moviePlayback")
+                } else {
+                    log.error("Failed to activate audio session: \(String(describing: error), privacy: .public)")
+                }
+            }
+        } else {
+            do {
+                try session.setActive(true, options: [])
+                log.info("Audio session configured for .playback/.moviePlayback")
+            } catch {
+                log.error("Failed to activate audio session: \(String(describing: error), privacy: .public)")
+            }
         }
     }
 }

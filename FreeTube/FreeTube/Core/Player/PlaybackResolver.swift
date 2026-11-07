@@ -13,8 +13,8 @@ final class PlaybackResolver: PlaybackResolving {
     private let downloads: DownloadManagerLike
     private let log = AppLog(subsystem: "com.leshko.freetube", category: "PlaybackResolver")
 
-    init(downloads: DownloadManagerLike = DownloadManager.shared) {
-        self.downloads = downloads
+    init(downloads: DownloadManagerLike? = nil) {
+        self.downloads = downloads ?? DownloadManager.shared
     }
 
     func resolve(videoID: String, quality: VideoQuality) async throws -> PlaybackSource {

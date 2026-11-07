@@ -59,7 +59,9 @@ final class DownloadsStore {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+            Task { @MainActor [weak self] in
+                self?.refresh()
+            }
         }
         refresh()
     }
@@ -107,10 +109,10 @@ final class DownloadsStore {
     func refresh() {
         scanTask?.cancel()
         isScanning = true
-        scanTask = Task.detached(priority: .utility) { [weak self] in
-            let scanned = Self.scanDirectory()
+        scanTask = Task.detached(priority: .utility) {
+            let scanned = await Self.scanDirectory()
             guard !Task.isCancelled else { return }
-            await MainActor.run {
+            await MainActor.run { [weak self] in
                 guard let self else { return }
                 self.entries = scanned
                 self.isScanning = false
@@ -122,7 +124,7 @@ final class DownloadsStore {
     /// Pure file-system scan + xattr decode. `nonisolated static` so it can run from any
     /// thread (the detached scan task in particular). Returns the sorted entry list.
     /// Newest first by `downloadedAt` if metadata is present, else by file mtime.
-    private nonisolated static func scanDirectory() -> [DownloadEntry] {
+    private nonisolated static func scanDirectory() async -> [DownloadEntry] {
         let dir = downloadsDirectory()
         let fileURLs = (try? FileManager.default.contentsOfDirectory(
             at: dir,
@@ -130,7 +132,14 @@ final class DownloadsStore {
             options: [.skipsHiddenFiles]
         )) ?? []
         let mediaURLs = fileURLs.filter { ["mp4", "m4a", "mp3", "webm", "opus"].contains($0.pathExtension.lowercased()) }
-        return mediaURLs.compactMap(makeEntry(from:)).sorted { $0.sortDate > $1.sortDate }
+        var entries: [DownloadEntry] = []
+        entries.reserveCapacity(mediaURLs.count)
+        for url in mediaURLs {
+            if let entry = await makeEntry(from: url) {
+                entries.append(entry)
+            }
+        }
+        return entries.sorted { $0.sortDate > $1.sortDate }
     }
 
     /// Returns the compressed JPEG thumbnail bytes for a given videoID (or nil).
@@ -175,7 +184,7 @@ final class DownloadsStore {
         // doesn't pin any actor-isolated reference.
         Task.detached(priority: .utility) {
             let thumb = rawThumbnail.flatMap(Self.compressedThumbnail(_:))
-            let duration = Self.readDuration(at: fileURL)
+            let duration = await Self.readDuration(at: fileURL)
             let metadata = DownloadMetadata(
                 videoID: videoID,
                 title: title,
@@ -263,12 +272,17 @@ final class DownloadsStore {
     /// it; saves a disk read). Fall back to an `AVURLAsset` header read for orphans and
     /// older files. Both paths run on whatever thread is calling — always the scan's
     /// detached `.utility` task in practice — never on main.
-    private nonisolated static func makeEntry(from url: URL) -> DownloadEntry? {
+    private nonisolated static func makeEntry(from url: URL) async -> DownloadEntry? {
         let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
         let size = (attrs?[.size] as? NSNumber)?.int64Value ?? 0
         let mtime = (attrs?[.modificationDate] as? Date) ?? .distantPast
         let metadata = readMetadata(at: url)
-        let duration = metadata?.duration ?? readDuration(at: url)
+        let duration: TimeInterval?
+        if let cached = metadata?.duration {
+            duration = cached
+        } else {
+            duration = await readDuration(at: url)
+        }
         return DownloadEntry(
             fileURL: url,
             metadata: metadata,
@@ -283,13 +297,13 @@ final class DownloadsStore {
         return try? PropertyListDecoder().decode(DownloadMetadata.self, from: blob)
     }
 
-    /// One-shot synchronous `AVURLAsset.duration` read. Deprecated API but appropriate here:
-    /// the file is local mp4, the call only walks the moov atom (a few KB of header), and
-    /// it's invoked from detached `.utility` tasks (scan + write) — never on main.
-    nonisolated static func readDuration(at url: URL) -> TimeInterval? {
+    /// One-shot asynchronous `AVURLAsset` duration read. The async load avoids blocking the
+    /// caller while AVFoundation resolves the local file's metadata.
+    nonisolated static func readDuration(at url: URL) async -> TimeInterval? {
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         let asset = AVURLAsset(url: url)
-        let seconds = asset.duration.seconds
+        guard let duration = try? await asset.load(.duration) else { return nil }
+        let seconds = duration.seconds
         return (seconds.isFinite && seconds > 0) ? seconds : nil
     }
 
@@ -310,7 +324,7 @@ final class DownloadsStore {
 /// One row from the filesystem scan. `metadata == nil` means the file has no xattr we
 /// recognise — surface it as an "orphan" with sensible defaults (filename-as-title).
 @available(iOS 17.0, *)
-struct DownloadEntry: Identifiable, Sendable {
+nonisolated struct DownloadEntry: Identifiable, Sendable {
     let fileURL: URL
     let metadata: DownloadMetadata?
     let fileSize: Int64
